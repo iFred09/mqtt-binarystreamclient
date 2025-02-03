@@ -63,6 +63,15 @@
                             <mainClass>mqtt.Publish</mainClass>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>subscribe</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>mqtt.Subscribe</mainClass>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

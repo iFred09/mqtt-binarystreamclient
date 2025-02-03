@@ -6,8 +6,8 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-public class Publish {
-    private static final Logger LOGGER = Logger.getLogger(ConnectConnack.class.getName());
+public class Subscribe {
+    private static final Logger LOGGER = Logger.getLogger(Subscribe.class.getName());
 
     public static void main(String[] args) {
         try{
@@ -16,12 +16,12 @@ public class Publish {
             OutputStream outputStream = socket.getOutputStream();
 
             String clientId = "myClientId";
-            
+
             // Construct CONNECT packet
             byte[] clientIdBytes = clientId.getBytes();
             int connectLength = 12 + clientIdBytes.length;
             byte[] connectPacket = new byte[2 + connectLength];
-            
+
             connectPacket[0] = 0x10; // CONNECT packet type
             connectPacket[1] = (byte) connectLength; // Remaining length
             connectPacket[2] = 0x00; // Protocol name length MSB
@@ -37,7 +37,7 @@ public class Publish {
             connectPacket[12] = 0x00; // Client ID length MSB
             connectPacket[13] = (byte) clientIdBytes.length; // Client ID length LSB
             System.arraycopy(clientIdBytes, 0, connectPacket, 14, clientIdBytes.length);
-            
+
             // Send CONNECT packet
             outputStream.write(connectPacket);
             outputStream.flush();
@@ -60,30 +60,48 @@ public class Publish {
                 LOGGER.severe("Invalid CONNACK response received: " + Arrays.toString(connack));
             }
 
-            // create Publish packet
+            // create Subscribe packet
 
             String topic = "labs/new-topic";
-            String message = "Hello MQTT!";
             byte[] topicBytes = topic.getBytes();
-            byte[] messageBytes = message.getBytes();
 
-            int publishLength = 2 + topicBytes.length + messageBytes.length;
-            byte[] publishPacket = new byte[2 + publishLength];
+            int subscribeLength = 2 + topicBytes.length + 1; // 1 : QoS 1
+            byte[] subscribePacket = new byte[5 + subscribeLength];
 
-            publishPacket[0] = 0x30;
-            publishPacket[1] = (byte) publishLength;
-            publishPacket[2] = 0x00;
+            subscribePacket[0] = (byte) 0x82;
+            subscribePacket[1] = (byte) (3 + subscribeLength);
+            subscribePacket[2] = 0x00;
+            subscribePacket[3] = 0x01;
 
-            publishPacket[3] = (byte) topicBytes.length;
-            System.arraycopy(topicBytes, 0, publishPacket, 4, topicBytes.length);
+            subscribePacket[4] = (byte) topicBytes.length;
+            System.arraycopy(topicBytes, 0, subscribePacket, 5, topicBytes.length);
 
-            System.arraycopy(messageBytes, 0, publishPacket, 4 + topicBytes.length, messageBytes.length);
+            subscribePacket[5 + topicBytes.length] = (byte) 0x00;
+
             // send packet
 
-            outputStream.write(publishPacket);
+            outputStream.write(subscribePacket);
             outputStream.flush();
 
-            LOGGER.info("Publish complete.");
+            LOGGER.info("Subscribe for the topic: " + topic + " complete.");
+
+            // read SUBACK
+
+            byte[] suback = new byte[5];
+            int subackRead = inputStream.read(suback);
+
+            if (subackRead == 5) {
+                LOGGER.info("Received SUBACK: " + Arrays.toString(suback));
+                if (suback[3] == 0x00) {
+                    LOGGER.info("Subscription accepted.");
+                }
+                else {
+                    LOGGER.severe("Subscription refused, return code " + suback[3]);
+                }
+            }
+            else {
+                LOGGER.severe("Invalid SUBACK response received: " + Arrays.toString(suback));
+            }
         }
         catch(Exception e){
             LOGGER.severe("Error: " + e.getMessage());

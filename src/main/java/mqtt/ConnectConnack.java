@@ -36,11 +36,11 @@ public class ConnectConnack {
                     LOGGER.info("Connection accepted.");
                 }
                 else {
-                    LOGGER.info("Connection refused, return code " + connack[3]);
+                    LOGGER.severe("Connection refused, return code " + connack[3]);
                 }
             }
             else {
-                LOGGER.info("Invalid CONNACK response received: " + Arrays.toString(connack));
+                LOGGER.severe("Invalid CONNACK response received: " + Arrays.toString(connack));
             }
 
         }
