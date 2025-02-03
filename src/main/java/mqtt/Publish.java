@@ -25,7 +25,7 @@ public class Publish {
             byte[] messageBytes = message.getBytes();
 
             int remainingLength = 2 + topicBytes.length + messageBytes.length;
-            byte[] publishPacket = new byte[remainingLength];
+            byte[] publishPacket = new byte[2048];
 
             publishPacket[0] = 0x30;
             publishPacket[1] = (byte) remainingLength;
