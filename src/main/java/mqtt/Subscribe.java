@@ -1,5 +1,6 @@
 package mqtt;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -62,21 +63,32 @@ public class Subscribe {
 
             // create Subscribe packet
 
-            String topic = "labs/new-topic";
+            String topic = "blablabla";
             byte[] topicBytes = topic.getBytes();
 
-            int subscribeLength = 2 + topicBytes.length + 1; // 1 : QoS 1
-            byte[] subscribePacket = new byte[5 + subscribeLength];
+            int subscribeLength = 2 + 1 + topicBytes.length + 1;
+            byte[] subscribePacket = new byte[4 + subscribeLength];
 
             subscribePacket[0] = (byte) 0x82;
-            subscribePacket[1] = (byte) (3 + subscribeLength);
+            subscribePacket[1] = (byte) subscribeLength;
             subscribePacket[2] = 0x00;
             subscribePacket[3] = 0x01;
 
             subscribePacket[4] = (byte) topicBytes.length;
             System.arraycopy(topicBytes, 0, subscribePacket, 5, topicBytes.length);
 
-            subscribePacket[5 + topicBytes.length] = (byte) 0x00;
+            subscribePacket[5 + topicBytes.length] = (byte) 0x01;
+            
+            // DEBUG: print table
+            
+            StringBuilder hexString = new StringBuilder();
+            for (int i=0 ; i<subscribePacket.length ; i++) {
+            	hexString.append(String.format("%02x ", subscribePacket[i]));
+            	if ((i+1) % 16 == 0) {
+            		hexString.append('\n');
+            	}
+            }
+            LOGGER.info("hex table: " + hexString.toString());
 
             // send packet
 
@@ -88,7 +100,13 @@ public class Subscribe {
             // read SUBACK
 
             byte[] suback = new byte[5];
-            int subackRead = inputStream.read(suback);
+            int subackRead = 0;
+            try {            	
+            	subackRead = inputStream.read(suback);
+            }
+            catch (IOException e) {
+            	LOGGER.severe("error: " + e.getMessage());
+            }
 
             if (subackRead == 5) {
                 LOGGER.info("Received SUBACK: " + Arrays.toString(suback));
