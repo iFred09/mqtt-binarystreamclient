@@ -15,7 +15,6 @@ public class ConnectConnack {
             InputStream inputStream = socket.getInputStream();
             OutputStream outputStream = socket.getOutputStream();
 
-            String clientId = "myClientId";
 
             // create MQTT packet (like the example in the lecture slides: PYTHON)
 

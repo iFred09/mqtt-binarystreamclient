@@ -54,6 +54,15 @@
                             <mainClass>mqtt.ConnectConnack</mainClass>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>publish</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>mqtt.Publish</mainClass>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
