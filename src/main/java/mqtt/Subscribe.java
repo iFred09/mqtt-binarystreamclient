@@ -46,9 +46,9 @@ public class Subscribe {
             // read MQTT Broker's response
 
             byte[] connack = new byte[4];
-            int readed = inputStream.read(connack);
+            int read = inputStream.read(connack);
 
-            if (readed == 4 && connack[0] == 0x20) {
+            if (read == 4 && connack[0] == 0x20) {
                 LOGGER.info("Received CONNACK: " + Arrays.toString(connack));
                 if (connack[3] == 0x0) {
                     LOGGER.info("Connection accepted.");
