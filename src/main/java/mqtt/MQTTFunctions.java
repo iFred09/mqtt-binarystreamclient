@@ -13,6 +13,8 @@ public class MQTTFunctions {
     private OutputStream outputStream;
     private String topic;
     private String clientId;
+    
+    private static int publishId = 2;
 
     public MQTTFunctions(InputStream inputStream, OutputStream outputStream, String topic, String clientId) {
         this.inputStream = inputStream;
@@ -51,7 +53,6 @@ public class MQTTFunctions {
     public void receiveConnect(InputStream inputStream) throws IOException {
         byte[] connack = new byte[4];
         int read = inputStream.read(connack);
-
         if (read == 4 && connack[0] == 0x20) {
             LOGGER.info("Received CONNACK: " + Arrays.toString(connack));
             if (connack[3] == 0x0) {
@@ -112,46 +113,95 @@ public class MQTTFunctions {
         }
     }
 
-    public void publish(OutputStream outputStream, String topic, String message) throws IOException {
+    public int publish(OutputStream outputStream, String topic, String message, int qos) throws IOException {
         byte[] topicBytes = topic.getBytes();
         byte[] messageBytes = message.getBytes();
 
-        int publishLength = 2 + topicBytes.length + messageBytes.length;
+        int publishLength = 2 + topicBytes.length + 2 + messageBytes.length;
         byte[] publishPacket = new byte[2 + publishLength];
 
-        publishPacket[0] = 0x30;
+        if(qos == 0) publishPacket[0] = 0x30;
+        else if (qos == 1) publishPacket[0] = 0x32;
+        else if (qos == 2) publishPacket[0] = 0x34;
+        else {
+        	LOGGER.severe("QoS " + qos + " invalid.");
+        	throw new IOException("QoS invalid");
+        }
         publishPacket[1] = (byte) publishLength;
-        publishPacket[2] = 0x00;
-
-        publishPacket[3] = (byte) topicBytes.length;
+        publishPacket[2] = (byte) ((topicBytes.length >> 8) & 0xFF);
+        publishPacket[3] = (byte) (topicBytes.length & 0xFF);
         System.arraycopy(topicBytes, 0, publishPacket, 4, topicBytes.length);
+        
+        LOGGER.info("Publish Packet ID: " + publishId);
+        publishPacket[4 + topicBytes.length] = (byte) ((publishId >> 8) & 0xFF);
+        publishPacket[5 + topicBytes.length] = (byte) (publishId & 0xFF);
+        publishId++;
 
-        System.arraycopy(messageBytes, 0, publishPacket, 4 + topicBytes.length, messageBytes.length);
+        System.arraycopy(messageBytes, 0, publishPacket, 6 + topicBytes.length, messageBytes.length);
         // send packet
 
         outputStream.write(publishPacket);
         outputStream.flush();
 
         LOGGER.info("Publish complete.");
+        return publishId - 1;
     }
 
-    public void receivePuback(InputStream inputStream) throws IOException {
-        byte[] puback = new byte[4];
-        int pubackRead = 0;
-        try{
-            pubackRead = inputStream.read(puback);
-        }
-        catch (IOException e) {
-            LOGGER.severe("Error when reading PUBACK response: " + e.getMessage());
-        }
-        if (pubackRead == 4) {
-            LOGGER.info("Received PUBACK: " + Arrays.toString(puback));
-            if (puback[1] == 0x00) {
-                LOGGER.info("Publication accepted.");
+    public void receivePuback(InputStream inputStream, int expectedPacketId) throws IOException {
+        byte[] header = new byte[2];
+
+        while (true) {
+            int bytesRead = inputStream.read(header);
+            if (bytesRead != 2) {
+                LOGGER.severe("Failed to read PUBACK header.");
+                return;
             }
-            else{
-                LOGGER.severe("Publication refused, return code " + puback[1]);
+
+            int packetType = header[0] & 0xF0;  // Vérifier le type du paquet
+            int remainingLength = header[1] & 0xFF;
+
+            if (packetType == 0x40 && remainingLength == 2) {  // Si c'est un PUBACK
+                byte[] packetId = new byte[2];
+                bytesRead = inputStream.read(packetId);
+                if (bytesRead != 2) {
+                    LOGGER.severe("Failed to read PUBACK packet ID.");
+                    return;
+                }
+
+                int receivedPacketId = ((packetId[0] & 0xFF) << 8) | (packetId[1] & 0xFF);
+
+                if (receivedPacketId == expectedPacketId) {
+                    LOGGER.info("Correct PUBACK received for Packet ID: " + receivedPacketId);
+                    return;
+                } else {
+                    LOGGER.warning("Unexpected PUBACK received: " + receivedPacketId + " (expected: " + expectedPacketId + ")");
+                }
+            } else {
+                LOGGER.warning("Ignoring unexpected packet: " + Arrays.toString(header));
+                byte[] skip = new byte[remainingLength];
+                inputStream.read(skip); // Lire et ignorer ce paquet
             }
+        }
+    }
+    
+    public void receiveAndParseMessage(InputStream inputStream) throws IOException {
+        byte[] buffer = new byte[256];
+        int length = inputStream.read(buffer);
+        if (length > 0) {
+            parseMqttMessage(buffer, length);
+        }
+    }
+
+    private void parseMqttMessage(byte[] packet, int length) {
+        if ((packet[0] & 0xF0) == 0x30) { // Vérifie si c'est un PUBLISH
+            int topicLength = ((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF);
+            String topic = new String(packet, 4, topicLength);
+            
+            int payloadStart = 4 + topicLength;
+            String message = new String(packet, payloadStart, length - payloadStart);
+            
+            LOGGER.info("New message from topic: " + topic);
+            LOGGER.info("Message: " + message);
         }
     }
 }

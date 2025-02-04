@@ -72,6 +72,15 @@
                             <mainClass>mqtt.Subscribe</mainClass>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>asynchronous</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>mqtt.AsynchronousMessages</mainClass>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

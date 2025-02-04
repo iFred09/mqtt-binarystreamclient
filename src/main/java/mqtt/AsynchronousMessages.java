@@ -16,18 +16,25 @@ public class AsynchronousMessages {
         String topic = "labs/my-topic";
         String message1 = "Hello World";
         String message2 = "babar";
+        String message3 = "coucou tout le monde";
+        String message4 = "ça dit quoi le projet MQTT";
         InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
 
         MQTTFunctions mqttFunctions = new MQTTFunctions(inputStream, outputStream, clientId, topic);
-
+        
+        int id1, id2, id3, id4, id5;
         mqttFunctions.sendConnect(outputStream, clientId);
         mqttFunctions.receiveConnect(inputStream);
         mqttFunctions.subscribe(outputStream, topic);
         mqttFunctions.receiveSuback(inputStream);
-        mqttFunctions.publish(outputStream, topic, message1);
-        mqttFunctions.receivePuback(inputStream);
-        mqttFunctions.publish(outputStream, topic, message2);
-        mqttFunctions.publish(outputStream, topic, message1);
+        id1 = mqttFunctions.publish(outputStream, topic, message1, 1);
+        mqttFunctions.receivePuback(inputStream, id1);
+        id2 = mqttFunctions.publish(outputStream, topic, message2, 1);
+        mqttFunctions.receivePuback(inputStream, id2);
+        id3 = mqttFunctions.publish(outputStream, topic, message3, 2);
+        id4 = mqttFunctions.publish(outputStream, topic, message4, 2);
+        id5 = mqttFunctions.publish(outputStream, topic, message2, 1);
+        mqttFunctions.receivePuback(inputStream, id5);
     }
 }
