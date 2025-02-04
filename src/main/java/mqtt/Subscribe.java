@@ -66,16 +66,18 @@ public class Subscribe {
             String topic = "labs/my-topic";
             byte[] topicBytes = topic.getBytes();
 
-            int subscribeLength = 2 + 1 + topicBytes.length + 1;
-            byte[] subscribePacket = new byte[4 + subscribeLength];
+            int remainingLength = 2 + 2 + topicBytes.length + 1;
+            byte[] subscribePacket = new byte[2 + remainingLength];
 
             subscribePacket[0] = (byte) 0x82;
-            subscribePacket[1] = (byte) subscribeLength;
+            subscribePacket[1] = (byte) remainingLength;
             subscribePacket[2] = 0x00;
-            subscribePacket[3] = (byte) topicBytes.length;
-            System.arraycopy(topicBytes, 0, subscribePacket, 4, topicBytes.length);
+            subscribePacket[3] = 0x01;   
+            subscribePacket[4] = (byte) ((topicBytes.length >> 8) & 0xFF);
+            subscribePacket[5] = (byte) (topicBytes.length & 0xFF);
+            System.arraycopy(topicBytes, 0, subscribePacket, 6, topicBytes.length);
 
-            subscribePacket[4 + topicBytes.length] = (byte) 0x01;
+            subscribePacket[6 + topicBytes.length] = (byte) 0x01;
             
             // DEBUG: print table
             
@@ -108,7 +110,7 @@ public class Subscribe {
 
             if (subackRead == 5) {
                 LOGGER.info("Received SUBACK: " + Arrays.toString(suback));
-                if (suback[3] == 0x00) {
+                if (suback[3] == 0x01 || suback[3] == 0x00) {
                     LOGGER.info("Subscription accepted.");
                 }
                 else {
