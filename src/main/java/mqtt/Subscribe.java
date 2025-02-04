@@ -63,7 +63,7 @@ public class Subscribe {
 
             // create Subscribe packet
 
-            String topic = "blablabla";
+            String topic = "labs/my-topic";
             byte[] topicBytes = topic.getBytes();
 
             int subscribeLength = 2 + 1 + topicBytes.length + 1;
@@ -72,12 +72,10 @@ public class Subscribe {
             subscribePacket[0] = (byte) 0x82;
             subscribePacket[1] = (byte) subscribeLength;
             subscribePacket[2] = 0x00;
-            subscribePacket[3] = 0x01;
+            subscribePacket[3] = (byte) topicBytes.length;
+            System.arraycopy(topicBytes, 0, subscribePacket, 4, topicBytes.length);
 
-            subscribePacket[4] = (byte) topicBytes.length;
-            System.arraycopy(topicBytes, 0, subscribePacket, 5, topicBytes.length);
-
-            subscribePacket[5 + topicBytes.length] = (byte) 0x01;
+            subscribePacket[4 + topicBytes.length] = (byte) 0x01;
             
             // DEBUG: print table
             
