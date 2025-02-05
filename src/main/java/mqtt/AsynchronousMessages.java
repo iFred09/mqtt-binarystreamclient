@@ -28,13 +28,20 @@ public class AsynchronousMessages {
         mqttFunctions.receiveConnect(inputStream);
         mqttFunctions.subscribe(outputStream, topic);
         mqttFunctions.receiveSuback(inputStream);
+        
+        Thread listenerThread = new Thread(() -> {
+			try {
+				mqttFunctions.receiveAndParseMessage(inputStream);
+			} catch (IOException e) {
+				LOGGER.severe("Error when receiving the message: " + e.getMessage());
+			}
+		});
+        listenerThread.start();
+        
         id1 = mqttFunctions.publish(outputStream, topic, message1, 1);
-        mqttFunctions.receivePuback(inputStream, id1);
         id2 = mqttFunctions.publish(outputStream, topic, message2, 1);
-        mqttFunctions.receivePuback(inputStream, id2);
         id3 = mqttFunctions.publish(outputStream, topic, message3, 2);
         id4 = mqttFunctions.publish(outputStream, topic, message4, 2);
         id5 = mqttFunctions.publish(outputStream, topic, message2, 1);
-        mqttFunctions.receivePuback(inputStream, id5);
     }
 }

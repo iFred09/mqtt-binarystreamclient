@@ -185,15 +185,17 @@ public class MQTTFunctions {
     }
     
     public void receiveAndParseMessage(InputStream inputStream) throws IOException {
-        byte[] buffer = new byte[256];
-        int length = inputStream.read(buffer);
-        if (length > 0) {
-            parseMqttMessage(buffer, length);
-        }
+    	byte[] buffer = new byte[256];
+    	while (true) {
+    		int length = inputStream.read(buffer);
+            if (length > 0) {
+                parseMqttMessage(buffer, length);
+            }
+    	}
     }
 
     private void parseMqttMessage(byte[] packet, int length) {
-        if ((packet[0] & 0xF0) == 0x30) { // Vérifie si c'est un PUBLISH
+        if ((packet[0] & 0xF0) == 0x30 || (packet[0] & 0xF0) == 0x32 || (packet[0] & 0xF0) == 0x34) { // Vérifie si c'est un PUBLISH
             int topicLength = ((packet[2] & 0xFF) << 8) | (packet[3] & 0xFF);
             String topic = new String(packet, 4, topicLength);
             
@@ -202,6 +204,12 @@ public class MQTTFunctions {
             
             LOGGER.info("New message from topic: " + topic);
             LOGGER.info("Message: " + message);
+        }
+        else if ((packet[0] & 0xF0) == 0x40) {  // Si c'est un PUBACK
+        	LOGGER.info("PUBACK received for Packet ID: " + ((packet[2] & 0xFF << 8) | (packet[3] & 0xFF)));
+        }
+        else {
+            LOGGER.warning("Ignoring unexpected packet: " + Arrays.toString(packet));
         }
     }
 }

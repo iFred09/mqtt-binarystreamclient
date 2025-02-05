@@ -15,7 +15,7 @@ public class Publish {
             InputStream inputStream = socket.getInputStream();
             OutputStream outputStream = socket.getOutputStream();
 
-            String clientId = "myClientId";
+            String clientId = "myClientIdpublish";
             
             // Construct CONNECT packet
             byte[] clientIdBytes = clientId.getBytes();
